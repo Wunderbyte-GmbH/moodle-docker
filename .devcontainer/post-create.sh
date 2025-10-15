@@ -50,7 +50,7 @@ sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
     --shortname="Moodle" \
     --adminuser="admin" \
     --adminpass="Start123!" \
-    --non-interactive
+    --non-interactive --agree-license
 
 # Configure Apache
 echo "🌍 Configuring Apache..."
