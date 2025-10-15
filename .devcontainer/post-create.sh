@@ -38,10 +38,22 @@ sudo chown -R www-data:www-data /var/moodledata
 
 # Create config.php
 echo "🧩 Adjusting PHP settings..."
+PHPVER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
+
+# Create override dirs if missing
+sudo mkdir -p /etc/php/$PHPVER/apache2/conf.d
+sudo mkdir -p /etc/php/$PHPVER/cli/conf.d
+
 # Ensure PHP allows enough vars for Moodle
 echo "max_input_vars = 5000" | sudo tee /etc/php/*/apache2/conf.d/99-moodle.ini > /dev/null
 echo "max_input_vars = 5000" | sudo tee /etc/php/*/cli/conf.d/99-moodle.ini > /dev/null
-sudo systemctl restart apache2
+
+# Restart Apache if available
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl restart apache2 || true
+elif command -v service >/dev/null 2>&1; then
+  sudo service apache2 restart || true
+fi
 
 echo "⚙️ Creating config.php..."
 sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
@@ -56,7 +68,8 @@ sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
     --shortname="Moodle" \
     --adminuser="admin" \
     --adminpass="Start123!" \
-    --non-interactive --agree-license
+    --non-interactive \
+    --agree-license
 
 # Configure Apache
 echo "🌍 Configuring Apache..."
