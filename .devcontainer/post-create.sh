@@ -37,6 +37,12 @@ sudo mkdir -p /var/moodledata
 sudo chown -R www-data:www-data /var/moodledata
 
 # Create config.php
+echo "🧩 Adjusting PHP settings..."
+# Ensure PHP allows enough vars for Moodle
+echo "max_input_vars = 5000" | sudo tee /etc/php/*/apache2/conf.d/99-moodle.ini > /dev/null
+echo "max_input_vars = 5000" | sudo tee /etc/php/*/cli/conf.d/99-moodle.ini > /dev/null
+sudo systemctl restart apache2
+
 echo "⚙️ Creating config.php..."
 sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
     --wwwroot="http://localhost" \
