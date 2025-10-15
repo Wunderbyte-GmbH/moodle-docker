@@ -1,52 +1,67 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Setting up Moodle-Docker…"
+echo "🚀 Starting Moodle setup without Docker..."
 
+# Ensure we are in the workspace folder
 cd /workspaces/moodle-docker
 
-# Copy environment file if missing
-if [ ! -f .env ]; then
-  cp env.dist .env
-fi
+# Install dependencies
+echo "📦 Installing dependencies..."
+sudo apt-get update -y
+sudo apt-get install -y apache2 mariadb-server php php-mysql php-xml php-mbstring php-zip php-intl php-curl php-gd git unzip
 
-# --- Moodle setup variables ---
-export MOODLE_DOCKER_WWWROOT=/var/www/html/moodle
-export MOODLE_DOCKER_DB=mariadb
-export MOODLE_BRANCH=MOODLE_404_STABLE
-export MOODLE_REPO=https://github.com/moodle/moodle.git
-export MOODLE_DOCKER_PHP_VERSION=8.1
-export MOODLE_DOCKER_BROWSER=firefox
+# Start services
+sudo service apache2 start
+sudo service mariadb start
 
-# --- Start containers ---
-echo "🐳 Starting Docker services..."
-docker-compose pull
-docker-compose up -d
+# Configure MariaDB
+echo "🛠️ Configuring MariaDB..."
+sudo mysql -e "CREATE DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER 'moodle'@'localhost' IDENTIFIED BY 'moodle';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON moodle.* TO 'moodle'@'localhost'; FLUSH PRIVILEGES;"
 
-# Wait until DB is ready
-echo "⏳ Waiting for database..."
-sleep 25
+# Install Moodle
+echo "⬇️ Cloning Moodle..."
+sudo mkdir -p /var/www/html/moodle
+sudo git clone -b MOODLE_404_STABLE https://github.com/moodle/moodle.git /var/www/html/moodle
+sudo chown -R www-data:www-data /var/www/html/moodle
 
-# --- Install Moodle inside the container ---
-echo "📦 Installing Moodle..."
-docker-compose exec -T webserver bash -c "
-    if [ ! -d /var/www/html/moodle ]; then
-        git clone -b \$MOODLE_BRANCH \$MOODLE_REPO /var/www/html/moodle
-    fi &&
-    cd /var/www/html/moodle &&
-    php admin/cli/install.php --wwwroot=http://localhost \
-        --dataroot=/var/www/moodledata \
-        --dbtype=mariadb --dbhost=mariadb \
-        --dbname=moodle --dbuser=moodle --dbpass=moodle \
-        --fullname='Moodle Dev' --shortname='Moodle' \
-        --adminuser=admin --adminpass='Start123!' --non-interactive
-"
+# Create dataroot
+sudo mkdir -p /var/moodledata
+sudo chown -R www-data:www-data /var/moodledata
 
-# --- Reset admin password (idempotent) ---
-echo "🔑 Resetting admin password..."
-docker-compose exec -T webserver bash -c "
-    cd /var/www/html/moodle &&
-    php admin/cli/reset_password.php --username=admin --password='Start123!'
-"
+# Create config.php
+echo "⚙️ Creating config.php..."
+sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
+    --wwwroot="http://localhost" \
+    --dataroot="/var/moodledata" \
+    --dbtype="mariadb" \
+    --dbhost="localhost" \
+    --dbname="moodle" \
+    --dbuser="moodle" \
+    --dbpass="moodle" \
+    --fullname="Moodle Codespaces" \
+    --shortname="Moodle" \
+    --adminuser="admin" \
+    --adminpass="Start123!" \
+    --non-interactive
 
-echo "✅ Moodle is installed and ready at http://localhost (user: admin / Start123!)"
+# Configure Apache
+echo "🌍 Configuring Apache..."
+sudo bash -c 'cat > /etc/apache2/sites-available/000-default.conf <<EOF
+<VirtualHost *:80>
+    DocumentRoot /var/www/html/moodle
+    <Directory /var/www/html/moodle>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+EOF'
+
+sudo a2enmod rewrite
+sudo service apache2 restart
+
+echo "✅ Moodle is ready!"
+echo "🌐 Open your Codespace port 80 → then click the public URL shown in 'PORTS' tab."
+echo "👤 Login: admin / Start123!"

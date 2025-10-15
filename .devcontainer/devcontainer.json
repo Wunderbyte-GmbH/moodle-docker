@@ -1,17 +1,14 @@
 {
-  "name": "Moodle-Docker Dev",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "name": "Moodle Direct Setup",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [80],
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-azuretools.vscode-docker",
-        "bmewburn.vscode-intelephense-client"
+        "bmewburn.vscode-intelephense-client",
+        "felixfbecker.php-debug"
       ]
     }
-  },
-  "forwardPorts": [80, 443, 8080],
-  "remoteUser": "vscode"
+  }
 }
