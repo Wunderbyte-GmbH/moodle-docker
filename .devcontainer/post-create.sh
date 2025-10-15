@@ -3,6 +3,11 @@ set -e
 
 echo "🚀 Starting Moodle setup without Docker..."
 
+# Ensure passwordless sudo for vscode
+echo "🔧 Configuring sudo permissions..."
+echo "vscode ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/90-vscode-nopasswd > /dev/null
+sudo chmod 440 /etc/sudoers.d/90-vscode-nopasswd
+
 # Ensure we are in the workspace folder
 cd /workspaces/moodle-docker
 
