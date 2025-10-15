@@ -41,12 +41,10 @@ echo "🧩 Adjusting PHP settings..."
 PHPVER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
 
 # Create override dirs if missing
-sudo mkdir -p /etc/php/$PHPVER/apache2/conf.d
+echo "🧩 Adjusting PHP settings (CLI only)..."
+PHPVER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
 sudo mkdir -p /etc/php/$PHPVER/cli/conf.d
-
-# Ensure PHP allows enough vars for Moodle
-echo "max_input_vars = 5000" | sudo tee /etc/php/*/apache2/conf.d/99-moodle.ini > /dev/null
-echo "max_input_vars = 5000" | sudo tee /etc/php/*/cli/conf.d/99-moodle.ini > /dev/null
+echo "max_input_vars = 5000" | sudo tee /etc/php/$PHPVER/cli/conf.d/99-moodle.ini > /dev/null
 
 # Restart Apache if available
 if command -v systemctl >/dev/null 2>&1; then
