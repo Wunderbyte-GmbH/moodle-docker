@@ -52,10 +52,21 @@ if command -v systemctl >/dev/null 2>&1; then
 elif command -v service >/dev/null 2>&1; then
   sudo service apache2 restart || true
 fi
-
+CODESPACE_NAME=$(echo "$CODESPACE_NAME" | tr -d '\r')
 echo "⚙️ Creating config.php..."
+# Detect public Codespace URL dynamically
+if [ -n "$CODESPACE_NAME" ]; then
+  # Example: vigilant-space-train-v6667v9v965qhjwr
+  MOODLE_URL="https://${CODESPACE_NAME}-80.app.github.dev"
+else
+  # Fallback if running locally or outside Codespaces
+  MOODLE_URL="http://localhost"
+fi
+
+echo "🌐 Using Moodle URL: $MOODLE_URL"
+
 sudo -u www-data php /var/www/html/moodle/admin/cli/install.php \
-    --wwwroot="http://localhost" \
+    --wwwroot="$MOODLE_URL" \
     --dataroot="/var/moodledata" \
     --dbtype="mariadb" \
     --dbhost="localhost" \
